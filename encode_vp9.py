@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import glob
@@ -48,8 +48,8 @@ def vp8_encode(inp_file, out_file=None):
         out_name = '{inp}_vp8.webm'.format(inp=inp_name)
         out_file = os.path.join(inp_path, out_name)
 
-    command = 'ffmpeg -i input_file -c:v libvpx -b:v 1M -c:a libvorbis output_file'  # 12.75min
-    command = 'ffmpeg -i input_file -c:v libvpx -b:v 1M -c:a libvorbis -threads 3 output_file'
+    command = 'ffmpeg -loglevel 0 -i input_file -c:v libvpx -b:v 1M -c:a libvorbis output_file'  # 12.75min
+    command = 'ffmpeg -loglevel 0 -i input_file -c:v libvpx -b:v 1M -c:a libvorbis -threads 3 output_file'
     command = command.replace('input_file', inp_file).replace('output_file', out_file)
     args = shlex.split(command)
     logging.info(('Encoding is started with the following command:\n', ' '.join(args)))
@@ -89,10 +89,10 @@ def vp9_encode_2pass(inp_file, out_file=None, crf=33, num_cpu=4,
     else:
         crf = str(crf)
 
-    command_p1 = ('ffmpeg -y -i {in_file} -c:v libvpx-vp9 -pass 1 -b:v {br_v} '
+    command_p1 = ('ffmpeg -loglevel 0 -y -i {in_file} -c:v libvpx-vp9 -pass 1 -b:v {br_v} '
                   '-crf {crf} -threads {num_cpu} -speed 4 -tile-columns 6 -frame-parallel 1 '
                   '-an -f webm /dev/null')
-    command_p2 = ('ffmpeg -i {in_file} -c:v libvpx-vp9 -pass 2 -g 25 -b:v {br_v} '
+    command_p2 = ('ffmpeg -loglevel 0 -i {in_file} -c:v libvpx-vp9 -pass 2 -g 25 -b:v {br_v} '
                   '-crf {crf} -vf "yadif, hqdn3d={hqdn}, gradfun={grad}, unsharp={unsharp}" '
                   '-threads {num_cpu} -speed {speed} -tile-columns 6 -frame-parallel 1 '
                   '-auto-alt-ref 1 -lag-in-frames 25 -c:a libopus -b:a {br_a} '
