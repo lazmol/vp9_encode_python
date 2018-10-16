@@ -89,14 +89,14 @@ def vp9_encode_2pass(inp_file, out_file=None, crf=33, num_cpu=4,
     else:
         crf = str(crf)
 
-    command_p1 = ('ffmpeg -loglevel 0 -y -i {in_file} -c:v libvpx-vp9 -pass 1 -b:v {br_v} '
+    command_p1 = ('ffmpeg -loglevel 32 -y -i {in_file} -c:v libvpx-vp9 -pass 1 -b:v {br_v} '
                   '-crf {crf} -threads {num_cpu} -speed 4 -tile-columns 6 -frame-parallel 1 '
-                  '-an -f webm /dev/null')
-    command_p2 = ('ffmpeg -loglevel 0 -i {in_file} -c:v libvpx-vp9 -pass 2 -g 25 -b:v {br_v} '
+                  '-an -f webm -map_metadata 0 /dev/null')
+    command_p2 = ('ffmpeg -loglevel 32 -i {in_file} -c:v libvpx-vp9 -pass 2 -g 25 -b:v {br_v} '
                   '-crf {crf} -vf "yadif, hqdn3d={hqdn}, gradfun={grad}, unsharp={unsharp}" '
                   '-threads {num_cpu} -speed {speed} -tile-columns 6 -frame-parallel 1 '
                   '-auto-alt-ref 1 -lag-in-frames 25 -c:a libopus -b:a {br_a} '
-                  '-f webm {out_file}')
+                  '-f webm -map_metadata 0 {out_file}')
     command_p1 = command_p1.format(in_file=inp_file, br_v=br_v, crf=crf, num_cpu=num_cpu)
     command_p2 = command_p2.format(in_file=inp_file, br_v=br_v, crf=crf, num_cpu=num_cpu,
                                    speed=speed, br_a=br_a, out_file=out_file,
@@ -140,10 +140,11 @@ def test_filters(input_file,
 
 
 if __name__ == '__main__':
-    inp_files = sorted(glob.glob('./*.avi'))
+    inp_files = sorted(glob.glob('./*.MP4'))
+    # max 16 cpus recommended
     print(inp_files)
     for inp_file in inp_files:
         out_file = os.path.splitext(inp_file)[0] + '.webm'
         vp9_encode_2pass(inp_file, out_file=out_file,
-                         crf=31, num_cpu=7, br_v='1000K', br_a='96k', speed=1,
+                         crf=31, num_cpu=6, br_v='1000K', br_a='96k', speed=1,
                          hqdn='luma_spatial=2', gradfun='1.0:16', unsharp='9:9:1.0:3:3:0.0')
