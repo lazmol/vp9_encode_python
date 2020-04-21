@@ -96,7 +96,7 @@ def vp9_encode_2pass(inp_file, out_file=None, crf=33, num_cpu=4,
                   '-crf {crf} -vf "yadif, hqdn3d={hqdn}, gradfun={grad}, unsharp={unsharp}" '
                   '-threads {num_cpu} -speed {speed} -tile-columns 6 -frame-parallel 1 '
                   '-auto-alt-ref 1 -lag-in-frames 25 -c:a libopus -b:a {br_a} '
-                  '-f webm -map_metadata 0 {out_file}')
+                  '-f webm -map_metadata 0 {out_file} < /dev/null')
     command_p1 = command_p1.format(in_file=inp_file, br_v=br_v, crf=crf, num_cpu=num_cpu)
     command_p2 = command_p2.format(in_file=inp_file, br_v=br_v, crf=crf, num_cpu=num_cpu,
                                    speed=speed, br_a=br_a, out_file=out_file,
@@ -124,6 +124,29 @@ def vp9_encode_2pass(inp_file, out_file=None, crf=33, num_cpu=4,
     process.wait()
 
 
+@timeit
+def h264_encode(inp_file, out_file=None, num_cores=2, crf=22, preset='slow', res='1920:1080'):
+    os.system('rm -fr *pass*.log')
+
+    if not out_file:
+        inp_path, inp_name = os.path.split(inp_file)
+        inp_name = os.path.splitext(inp_name)[0]
+        out_name = f'{inp_name}_h264_crf{crf}_preset{preset}.mp4'
+        out_file = os.path.join(inp_path, out_name)
+    print('Encoding:', inp_file, out_file)
+
+    # command = f'ffmpeg -loglevel 32 -y -threads {num_cores} -i {inp_file} -c:v libx264 -preset {preset} -crf {crf} -c:a copy {out_file}'
+    # $ ffmpeg -threads 2 -i P1070781.MP4 -vaapi_device /dev/dri/renderD128 -vcodec h264_vaapi -vf "scale=1920:1080, format=nv12|vaapi, hwupload" P1070781_archhwenc_fhd.mp4
+    command = (f'ffmpeg -loglevel 32 -y -threads {num_cores} -i {inp_file} '
+               f'-vaapi_device /dev/dri/renderD128 -vcodec h264_vaapi '
+               f'-vf "scale={res}, format=nv12|vaapi, hwupload" '
+               f'-preset {preset} -crf {crf} -c:a copy -map_metadata 0 {out_file}')
+    logging.info(f'1 pass encoding is started with the following commands:\n {command}')
+
+    process = sp.Popen(shlex.split(command))
+    process.wait()
+
+
 def test_filters(input_file,
                  gradfuns=['0.51:32', '1.0:16'],
                  hqdns=['luma_spatial=2'],
@@ -145,6 +168,7 @@ if __name__ == '__main__':
     print(inp_files)
     for inp_file in inp_files:
         out_file = os.path.splitext(inp_file)[0] + '.webm'
-        vp9_encode_2pass(inp_file, out_file=out_file,
-                         crf=31, num_cpu=6, br_v='1000K', br_a='96k', speed=1,
-                         hqdn='luma_spatial=2', gradfun='1.0:16', unsharp='9:9:1.0:3:3:0.0')
+        # vp9_encode_2pass(inp_file, out_file=out_file,
+        #                  crf=31, num_cpu=3, br_v='1000K', br_a='96k', speed=1,
+        #                  hqdn='luma_spatial=2', gradfun='1.0:16', unsharp='9:9:1.0:3:3:0.0')
+        h264_encode(inp_file)
